@@ -1,0 +1,20 @@
+:80 {
+    proxy / wordpress:80 {
+            transparent
+            websocket
+        }
+
+    errors stderr
+    tls {$TLS}
+}
+
+:8080 {
+    basicauth / {$ADMIN_USER} {$ADMIN_PASSWORD}
+    proxy / phpmyadmin:80 {
+            transparent
+        }
+
+    errors stderr
+    tls {$TLS}
+}
+
