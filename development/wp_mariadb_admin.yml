@@ -18,10 +18,10 @@ secrets:
     external: true
   db_root_pass:
     external: true
-  pma_user:
-    external: true
-  pma_pass:
-    external: true
+  # pma_user:
+  #   external: true
+  # pma_pass:
+  #   external: true
 
 services:
   wordpress:
