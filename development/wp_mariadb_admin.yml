@@ -109,8 +109,8 @@ services:
           memory: 128M
         reservations:
           memory: 64M
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://wordpress:80"]
-      interval: 5s
-      timeout: 1s
-      retries: 5
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://wordpress:80"]
+    #   interval: 5s
+    #   timeout: 1s
+    #   retries: 5
