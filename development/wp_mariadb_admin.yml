@@ -25,7 +25,7 @@ secrets:
 
 services:
   wordpress:
-    image: wordpress:latest
+    image: wordpress:4.9-php7.1-fpm
     volumes:
       - wp_content:/var/www/html/wp-content    
     secrets:
