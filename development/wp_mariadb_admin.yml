@@ -36,7 +36,7 @@ services:
     env_file:
       - environment/wordpress.env
     environment:
-      - WORDPRESS_DB_PASSWORD_FILE=/run/secrets/db_root_pass
+      - "WORDPRESS_DB_PASSWORD_FILE=/run/secrets/db_root_pass"
     deploy:
       placement:
         constraints: [node.role == manager]
@@ -55,7 +55,7 @@ services:
     env_file:
       - environment/mariadb.env
     environment:
-      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db_root_pass
+      - "MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db_root_pass"
     networks:
       - wp_network
     deploy:
