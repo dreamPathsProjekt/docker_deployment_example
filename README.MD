@@ -102,9 +102,13 @@ On Docker Host:
 ```bash
 echo 'xxxxx' | docker secret create lb_admin_user -
 echo 'xxxxx' | docker secret create lb_admin_pass -
+echo 'xxxxx' | docker secret create wp_db_pass -
+echo 'xxxxx' | docker secret create db_root_pass -
 ```
 
 In this example (demo purposes):
 
 - lb_admin_user: admin
 - lb_admin_pass: pass!word
+- wp_db_pass: wordpre5s
+- db_root_pass: r00t
