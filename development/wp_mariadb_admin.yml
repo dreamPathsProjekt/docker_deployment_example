@@ -56,7 +56,7 @@ services:
       - environment/mariadb.env
     environment:
       - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db_root_pass      
-      - MYSQL_PASSWORD=/run/secrets/wp_db_pass)
+      - MYSQL_PASSWORD_FILE=/run/secrets/wp_db_pass)
     networks:
       - wp_network
     deploy:
