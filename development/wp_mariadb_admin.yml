@@ -110,7 +110,7 @@ services:
         reservations:
           memory: 64M
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      test: ["CMD", "curl", "-f", "http://wordpress:80"]
       interval: 5s
       timeout: 1s
       retries: 5
