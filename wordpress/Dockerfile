@@ -2,9 +2,8 @@ FROM  wordpress:4-php7.1-fpm-alpine
 
 LABEL maintainer="dream.paths.projekt@gmail.com"
 
-RUN mkdir -p /home/custom_conf
-COPY . /home/custom_conf
-WORKDIR /home/custom_conf
+COPY . /usr/local/bin/
+WORKDIR /usr/local/bin/
 
 ENTRYPOINT [ "./docker-entry.sh" ]
 CMD ["php-fpm"]
