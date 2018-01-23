@@ -44,7 +44,7 @@ services:
       replicas: 1  
 
   mariadb:
-    image: mariadb
+    image: mariadb:10.3
     volumes:
       - mariadb_volume:/var/lib/mysql
     secrets:
