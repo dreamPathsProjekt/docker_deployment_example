@@ -6,5 +6,5 @@ RUN rm -f /etc/caddy/Caddyfile
 COPY . /etc/caddy/
 WORKDIR /etc/caddy/
 
-ENTRYPOINT [ "./startapp.sh" ]
+ENTRYPOINT [ "./docker-entry.sh" ]
 CMD ["caddy", "-quic", "--conf", "/etc/caddy/Caddyfile"]

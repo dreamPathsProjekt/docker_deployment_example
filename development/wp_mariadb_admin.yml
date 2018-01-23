@@ -1,0 +1,102 @@
+version: "3.3"
+
+networks:
+  wp_network:
+    driver: overlay
+    attachable: true
+
+volumes:
+  wp_content: {}
+  mariadb_volume: {}
+
+secrets:
+  lb_admin_user:
+    external: true
+  lb_admin_pass:
+    external: true
+  wp_db_pass:
+    external: true
+  db_root_pass:
+    external: true
+
+services:
+  wordpress:
+    image: wordpress:latest
+    secrets:
+      - source: wp_db_pass
+        target: wp_db_pass
+    networks:
+      - wp_network
+    env_file:
+      - environment/wordpress.env
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+      mode: replicated
+      replicas: 1  
+
+  mariadb:
+    image: mariadb
+    volumes:
+      - mariadb_volume:/var/lib/mysql
+    secrets:
+      - source: wp_db_pass
+        target: wp_db_pass
+      - source: db_root_pass
+        target: db_root_pass
+    env_file:
+      - environment/mariadb.env
+    networks:
+      - wp_network
+    deploy:
+      placement:
+          constraints: [node.role == manager]
+      replicas: 1
+      restart_policy:
+        condition: on-failure   
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    networks:
+      - wp_network
+    secrets:
+      - source: db_root_pass
+        target: db_root_pass
+    env_file:
+      - environment/pma.env
+    deploy:
+      mode: replicated
+      replicas: 1
+
+
+# caddy loadbalancer
+  caddy:
+    image: registry.dream:5001/caddy:0.1
+    secrets:
+      - source: lb_admin_user
+        target: lb_admin_user
+      - source: lb_admin_pass
+        target: lb_admin_pass
+    ports:
+      - "80:80" # wordpress
+      - "8080:8080" # phpmyadmin
+    networks:
+      - wp_network
+    env_file:
+      - environment/caddy.env
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 5s
+      timeout: 1s
+      retries: 5
