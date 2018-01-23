@@ -25,7 +25,9 @@ secrets:
 
 services:
   wordpress:
-    image: registry.dream:5001/wordpress:latest
+    image: wordpress:latest
+    volumes:
+      - wp_content:/var/www/html/wp-content    
     secrets:
       - source: wp_db_pass
         target: wp_db_pass
@@ -33,6 +35,8 @@ services:
       - wp_network
     env_file:
       - environment/wordpress.env
+    environment:
+      - WORDPRESS_DB_PASSWORD_FILE=/run/secrets/wp_db_pass
     deploy:
       placement:
         constraints: [node.role == manager]
@@ -40,7 +44,7 @@ services:
       replicas: 1  
 
   mariadb:
-    image: registry.dream:5001/mariadb:latest
+    image: mariadb
     volumes:
       - mariadb_volume:/var/lib/mysql
     secrets:
@@ -50,6 +54,9 @@ services:
         target: db_root_pass
     env_file:
       - environment/mariadb.env
+    environment:
+      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db_root_pass      
+      - MYSQL_PASSWORD=/run/secrets/wp_db_pass)
     networks:
       - wp_network
     deploy:
@@ -59,22 +66,22 @@ services:
       restart_policy:
         condition: on-failure   
 
-  phpmyadmin:
-    image: registry.dream:5001/pma:latest
-    networks:
-      - wp_network
-    secrets:
-      - source: db_root_pass
-        target: db_root_pass
-      - source: pma_user
-        target: pma_user
-      - source: pma_pass
-        target: pma_pass               
-    env_file:
-      - environment/pma.env
-    deploy:
-      mode: replicated
-      replicas: 1
+  # phpmyadmin:
+  #   image: registry.dream:5001/pma:latest
+  #   networks:
+  #     - wp_network
+  #   secrets:
+  #     - source: db_root_pass
+  #       target: db_root_pass
+  #     - source: pma_user
+  #       target: pma_user
+  #     - source: pma_pass
+  #       target: pma_pass               
+  #   env_file:
+  #     - environment/pma.env
+  #   deploy:
+  #     mode: replicated
+  #     replicas: 1
 
 
 # caddy loadbalancer

@@ -10,7 +10,7 @@
 
 :8080 {
     basicauth / {$ADMIN_USER} {$ADMIN_PASSWORD}
-    proxy / phpmyadmin:80 {
+    proxy / mariadb:8080 {
             transparent
         }
 
