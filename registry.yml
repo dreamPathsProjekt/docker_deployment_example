@@ -1,0 +1,12 @@
+services:
+  registry:
+    restart: always
+    image: registry:2
+    ports:
+      - 5001:5000
+    environment:
+      REGISTRY_HTTP_TLS_CERTIFICATE: /certs/registry.dream.crt
+      REGISTRY_HTTP_TLS_KEY: /private/registry.dream.key
+    volumes:
+      - /etc/ssl/certs:/certs
+      - /etc/ssl/private:/private
