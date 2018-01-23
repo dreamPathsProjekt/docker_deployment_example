@@ -100,10 +100,19 @@ docker pull registry.dream:5001/hello-world
 On Docker Host:
 
 ```bash
+# caddy loadbalancer user & password
 echo 'xxxxx' | docker secret create lb_admin_user -
 echo 'xxxxx' | docker secret create lb_admin_pass -
+
+# wordpress database password
 echo 'xxxxx' | docker secret create wp_db_pass -
+
+# mariadb root password
 echo 'xxxxx' | docker secret create db_root_pass -
+
+# phpmyadmin user & password
+echo 'xxxxx' | docker secret create pma_user -
+echo 'xxxxx' | docker secret create pma_pass -
 ```
 
 In this example (demo purposes):
@@ -112,3 +121,5 @@ In this example (demo purposes):
 - lb_admin_pass: pass!word
 - wp_db_pass: wordpre5s
 - db_root_pass: r00t
+- pma_user: pma
+- pma_pass: pmapass

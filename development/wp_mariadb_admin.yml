@@ -18,10 +18,14 @@ secrets:
     external: true
   db_root_pass:
     external: true
+  pma_user:
+    external: true
+  pma_pass:
+    external: true
 
 services:
   wordpress:
-    image: wordpress:latest
+    image: registry.dream:5001/wordpress:latest
     secrets:
       - source: wp_db_pass
         target: wp_db_pass
@@ -36,7 +40,7 @@ services:
       replicas: 1  
 
   mariadb:
-    image: mariadb
+    image: registry.dream:5001/mariadb:latest
     volumes:
       - mariadb_volume:/var/lib/mysql
     secrets:
@@ -56,12 +60,16 @@ services:
         condition: on-failure   
 
   phpmyadmin:
-    image: phpmyadmin/phpmyadmin
+    image: registry.dream:5001/pma:latest
     networks:
       - wp_network
     secrets:
       - source: db_root_pass
         target: db_root_pass
+      - source: pma_user
+        target: pma_user
+      - source: pma_pass
+        target: pma_pass               
     env_file:
       - environment/pma.env
     deploy:
@@ -71,7 +79,7 @@ services:
 
 # caddy loadbalancer
   caddy:
-    image: registry.dream:5001/caddy:0.1
+    image: registry.dream:5001/caddy:latest
     secrets:
       - source: lb_admin_user
         target: lb_admin_user
