@@ -89,7 +89,7 @@ services:
         target: lb_admin_pass
     ports:
       - "80:80" # wordpress
-      - "8888:8888" # adminer
+      - "8080:8888" # adminer
     networks:
       - wp_network
     depends_on:

@@ -8,7 +8,7 @@
     tls {$TLS}
 }
 
-:8888 {
+:8080 {
     basicauth / {$ADMIN_USER} {$ADMIN_PASSWORD}
     proxy / adminer:8888 {
             transparent
