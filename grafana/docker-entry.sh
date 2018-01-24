@@ -33,12 +33,12 @@ function set_config_target() {
         sed -ri "s/^(\s*)($1\s*:\s*$2\s*$)/\1$1: $escaped/" $4
 }
 
-ADMIN_USER=$(cat /run/secrets/mon_admin_user)
+ADMIN_USER=$(cat /run/secrets/lb_admin_user)
 if [ ! -z "$ADMIN_USER" ]; then
         set_config "admin_user " $ADMIN_USER $config_file
 fi
 
-ADMIN_PASSWORD=$(cat /run/secrets/mon_admin_pass)
+ADMIN_PASSWORD=$(cat /run/secrets/lb_admin_pass)
 if [ ! -z "$ADMIN_PASSWORD" ]; then
         set_config "admin_password " $ADMIN_PASSWORD $config_file
 fi
