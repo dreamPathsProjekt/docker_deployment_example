@@ -118,7 +118,16 @@ In this example (demo purposes):
 - wp_db_pass: wordpre5s, for user: wp, database: wp_dbase
 - db_root_pass: r00t
 
-Running Instance:
+## Credentials for Live Demo
+
+__Live Demo__ (production environment):
+
+- [Wordpress](http://35.189.200.49/)
+- [Adminer admin panel for MariaDB](http://35.189.200.49:8888) *needs credentials*
+- [Grafana Monitoring](http://35.189.200.49:3000) *needs credentials*
+- [Prometheus](http://35.189.200.49:9090) *needs credentials*
+
+Adminer, Grafana, Prometheus loadbalancer credentials: see above secrets lb_admin_user, lb_admin_pass
 
 - Admin Wordpress Account:
 - - user:admin
