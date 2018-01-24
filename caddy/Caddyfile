@@ -8,10 +8,11 @@
     tls {$TLS}
 }
 
-:80 {
+:8888 {
     basicauth / {$ADMIN_USER} {$ADMIN_PASSWORD}
     proxy /maria adminer:8888 {
             transparent
+            websocket
         }
 
     errors stderr
