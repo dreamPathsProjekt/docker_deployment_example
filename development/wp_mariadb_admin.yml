@@ -81,7 +81,7 @@ services:
 
   # caddy loadbalancer
   caddy:
-    image: registry.dream:5001/caddy:0.6
+    image: registry.dream:5001/caddy:0.6.1
     secrets:
       - source: lb_admin_user
         target: lb_admin_user
@@ -89,7 +89,7 @@ services:
         target: lb_admin_pass
     ports:
       - "80:80" # wordpress
-      - "8080:8888" # adminer
+      - "80:8888" # adminer
     networks:
       - wp_network
     depends_on:
