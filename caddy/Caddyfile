@@ -8,9 +8,9 @@
     tls {$TLS}
 }
 
-:8080 {
+:8888 {
     basicauth / {$ADMIN_USER} {$ADMIN_PASSWORD}
-    proxy / mariadb:8080 {
+    proxy / adminer:8888 {
             transparent
         }
 
