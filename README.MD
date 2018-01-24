@@ -117,3 +117,4 @@ In this example (demo purposes):
 - lb_admin_pass: pass!word
 - wp_db_pass: wordpre5s, for user: wp, database: wp_dbase
 - db_root_pass: r00t
+- Admin Wordpress Account: user:admin, password:admin, email:admin@domain.test

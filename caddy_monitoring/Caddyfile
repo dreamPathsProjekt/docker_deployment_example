@@ -1,0 +1,32 @@
+:9090 {
+    basicauth / {$ADMIN_USER} {$ADMIN_PASSWORD}
+    proxy / prometheus:9090 {
+            transparent
+            websocket
+        }
+
+    errors stderr
+    tls {$TLS}
+}
+
+:9115 {
+    basicauth / {$ADMIN_USER} {$ADMIN_PASSWORD}
+    proxy / blackbox:9115 {
+            transparent
+            websocket
+        }
+
+    errors stderr
+    tls {$TLS}
+}
+
+:3000 {
+    proxy / grafana:3000 {
+            transparent
+            websocket
+        }
+
+    errors stderr
+    tls {$TLS}
+}
+

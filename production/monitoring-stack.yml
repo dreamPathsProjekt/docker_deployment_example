@@ -1,0 +1,124 @@
+version: "3.3"
+
+networks:
+  monitor:
+    driver: overlay
+    attachable: true
+
+volumes:
+    prometheus: {}
+    grafana: {}
+
+secrets:
+  lb_admin_user:
+    external: true
+  lb_admin_pass:
+    external: true
+
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.0.0
+    networks:
+      - monitor
+    volumes:
+      - environment/prometheus/:/etc/prometheus/
+      - prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 2048M
+        reservations:
+          memory: 1024M
+ 
+
+  grafana:
+    image: registry.dream:5001/grafana:latest
+    secrets:
+      - source: lb_admin_user
+        target: lb_admin_user
+      - source: lb_admin_pass
+        target: lb_admin_pass          
+    depends_on:
+      - prometheus
+    networks:
+      - monitor
+    env_file:
+      - environment/grafana.env      
+    volumes:
+      - grafana:/var/lib/grafana
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+  blackbox:
+    image: registry.dream:5001/blackbox:latest
+    networks:
+      - monitor
+    env_file:
+      - environment/blackbox.env      
+    deploy:
+      replicas: 1
+
+  docker-exporter:
+    image: registry.dream:5001/docker-exporter:latest
+    networks:
+      - monitor
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager    
+      replicas: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  caddy_monitoring:
+    image: registry.dream:5001/caddy_monitoring:latest
+    secrets:
+      - source: lb_admin_user
+        target: lb_admin_user
+      - source: lb_admin_pass
+        target: lb_admin_pass
+    ports:
+      - "3000:3000" # grafana
+      - "9090:9090" # prometheus
+      - "9115:9115" # blackbox
+    networks:
+      - monitor
+    env_file:
+      - environment/caddy.env
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 5s
+      timeout: 1s
+      retries: 5
