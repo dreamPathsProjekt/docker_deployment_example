@@ -126,5 +126,9 @@ Running Instance:
 - - email:admin@domain.test
 
 - Monitoring Stack, Grafana
-- - user: admin
+- - admin user: admin
 - - password: pass!word
+
+- Grafana Read-Only User
+- - user: support
+- - password: support
