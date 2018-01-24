@@ -1,6 +1,6 @@
 
 FROM python:latest
-LABEL maintainer="i.dritsas@jrtechnologies.com"
+LABEL maintainer="dream.paths.projekt@gmail.com"
 
 # set working directory
 RUN mkdir -p /usr/src/docker-exporter
