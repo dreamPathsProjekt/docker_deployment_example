@@ -81,7 +81,7 @@ services:
 
   # caddy loadbalancer
   caddy:
-    image: registry.dream:5001/caddy:0.6.2
+    image: registry.dream:5001/caddy:latest
     secrets:
       - source: lb_admin_user
         target: lb_admin_user
