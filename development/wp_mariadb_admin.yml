@@ -20,25 +20,29 @@ secrets:
     external: true
 
 services:
+  # wordpress installation
   wordpress:
     image: wordpress:latest
     volumes:
       - wp_content:/var/www/html/wp-content    
     secrets:
-      - source: db_root_pass
-        target: db_root_pass
+      - source: wp_db_pass
+        target: wp_db_pass
     networks:
       - wp_network
+    depends_on:
+      - mariadb
     env_file:
       - environment/wordpress.env
     environment:
-      - "WORDPRESS_DB_PASSWORD_FILE=/run/secrets/db_root_pass"
+      - "WORDPRESS_DB_PASSWORD_FILE=/run/secrets/wp_db_pass"
     deploy:
       placement:
         constraints: [node.role == manager]
       mode: replicated
       replicas: 1  
 
+  # mariadb database
   mariadb:
     image: mariadb:10.3
     volumes:
@@ -51,6 +55,7 @@ services:
     env_file:
       - environment/mariadb.env
     environment:
+      - "MYSQL_PASSWORD_FILE=/run/secrets/wp_db_pass"
       - "MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db_root_pass"
     networks:
       - wp_network
@@ -61,6 +66,7 @@ services:
       restart_policy:
         condition: on-failure   
 
+  # adminer admin panel for mariadb
   adminer:
     image: hardware/adminer
     restart: always
@@ -68,30 +74,14 @@ services:
       - mariadb:mariadb
     networks:
       - wp_network
+    depends_on:
+      - mariadb
     deploy:
       replicas: 1
 
-  # phpmyadmin:
-  #   image: registry.dream:5001/pma:latest
-  #   networks:
-  #     - wp_network
-  #   secrets:
-  #     - source: db_root_pass
-  #       target: db_root_pass
-  #     - source: pma_user
-  #       target: pma_user
-  #     - source: pma_pass
-  #       target: pma_pass               
-  #   env_file:
-  #     - environment/pma.env
-  #   deploy:
-  #     mode: replicated
-  #     replicas: 1
-
-
-# caddy loadbalancer
+  # caddy loadbalancer
   caddy:
-    image: registry.greece:5001/caddybeta:0.4
+    image: registry.greece:5001/caddy:0.5
     secrets:
       - source: lb_admin_user
         target: lb_admin_user
@@ -102,6 +92,10 @@ services:
       - "8888:8888" # adminer
     networks:
       - wp_network
+    depends_on:
+      - mariadb
+      - wordpress
+      - adminer
     env_file:
       - environment/caddy.env
     deploy:
@@ -115,8 +109,8 @@ services:
           memory: 128M
         reservations:
           memory: 64M
-    # healthcheck:
-    #   test: ["CMD", "curl", "-f", "http://wordpress:80"]
-    #   interval: 5s
-    #   timeout: 1s
-    #   retries: 5
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://wordpress:80"]
+      interval: 5s
+      timeout: 1s
+      retries: 5

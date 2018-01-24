@@ -1,14 +1,9 @@
 #!/bin/bash
 
+# apply version for Caddy as an argument, e.g. build-all.sh 0.5
+
 chmod a+x `pwd`/caddy/build-script.sh && \
 `pwd`/caddy/build-script.sh $1
-# chmod a+x ./wordpress/build-script.sh && \
-# chmod a+x ./mariadb/build-script.sh && \
-# chmod a+x ./pma/build-script.sh && \
-
-#cd ./caddy && \
-#./build-script $1 && \
-#cd ../
 
 # echo "The script you are running has basename `basename $0`, dirname `dirname $0`"
 # echo "The present working directory is `pwd`"
