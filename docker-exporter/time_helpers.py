@@ -1,3 +1,6 @@
+# Author: Ioannis Dritsas
+# Email: dream.paths.projekt@gmail.com
+
 import time
 
 

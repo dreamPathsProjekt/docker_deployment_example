@@ -1,3 +1,6 @@
+# Author: Ioannis Dritsas
+# Email: dream.paths.projekt@gmail.com
+
 from prometheus_client import start_http_server, REGISTRY, Metric
 
 import docker

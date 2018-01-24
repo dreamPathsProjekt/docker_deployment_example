@@ -20,6 +20,6 @@ chmod a+x `pwd`/blackbox-exporter/build-script.sh && \
 # echo "The script you are running has basename `basename $0`, dirname `dirname $0`"
 # echo "The present working directory is `pwd`"
 
-# docker stack deploy --compose-file ./development/wp_mariadb_admin.yml wp
-
+# docker stack deploy --compose-file ./production/wp_mariadb_admin.yml wp
+# docker stack deploy --compose-file ./production/monitoring-stack.yml wp
 exit 0

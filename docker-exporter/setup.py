@@ -22,8 +22,7 @@ setup(
     # metadata for upload to PyPI
     author="Ioannis Dritsas",
     author_email="dream.paths.projekt@gmail.com",
-    description="Middleware Prometheus Exporters for Monitoring Api.",
+    description="Middleware Prometheus Exporter for Monitoring Stack.",
     license="MIT",
     keywords="",
-    # url="http://example.com/HelloWorld/",
 )
