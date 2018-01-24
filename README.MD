@@ -115,5 +115,5 @@ In this example (demo purposes):
 
 - lb_admin_user: admin
 - lb_admin_pass: pass!word
-- wp_db_pass: wordpre5s, for user: wp
+- wp_db_pass: wordpre5s, for user: wp, database: wp_dbase
 - db_root_pass: r00t
