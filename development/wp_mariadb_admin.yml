@@ -18,10 +18,6 @@ secrets:
     external: true
   db_root_pass:
     external: true
-  # pma_user:
-  #   external: true
-  # pma_pass:
-  #   external: true
 
 services:
   wordpress:
@@ -29,16 +25,14 @@ services:
     volumes:
       - wp_content:/var/www/html/wp-content    
     secrets:
-      - source: wp_db_pass
-        target: wp_db_pass
+      - source: db_root_pass
+        target: db_root_pass
     networks:
       - wp_network
-#    ports:
-#      - "80:80"
     env_file:
       - environment/wordpress.env
     environment:
-      - "WORDPRESS_DB_PASSWORD=root"
+      - "WORDPRESS_DB_PASSWORD_FILE=/run/secrets/db_root_pass"
     deploy:
       placement:
         constraints: [node.role == manager]
@@ -57,7 +51,7 @@ services:
     env_file:
       - environment/mariadb.env
     environment:
-      - "MYSQL_ROOT_PASSWORD=root"
+      - "MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db_root_pass"
     networks:
       - wp_network
     deploy:
