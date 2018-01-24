@@ -22,7 +22,7 @@ services:
     networks:
       - monitor
     volumes:
-      - environment/prometheus/:/etc/prometheus/
+      - ./environment/prometheus/:/etc/prometheus/
       - prometheus:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
