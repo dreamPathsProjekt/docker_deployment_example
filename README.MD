@@ -39,98 +39,6 @@ Loadbalancing is handled by a __Caddy__ loadbalancer.
 
 - Admin user and password are provided as build variables and initialized at runtime by using Docker Secrets.
 
-### Monitoring - Prometheus
-
-**Prometheus** service is at the center of collecting metrics from our installation.
-
-You can view all Prometheus targets at [http://node:9090/targets](http://node:9090/targets)
-
-- Demo Link: [http://35.189.200.49:9090](http://35.189.200.49:9090)
-
-Prometheus listens and generates metrics from scrape_configs -> jobs
-
-- Example of bootstrapping prometheus(self) & exporters to 'prometheus' job: [prometheus.yml](./production/environment/prometheus/prometheus.yml) configuration file mounted at `/home/username/docker_deployment_example/production/environment/prometheus/* (node-local) -> */etc/prometheus* (container)`
-
-- Prometheus exposes all collected metrics at [http://35.189.200.49:9090/metrics](http://35.189.200.49:9090/metrics), see below for Live Demo credentials
-
-### Grafana - Overview
-
-Grafana is a visualization application that uses Prometheus metrics as a Data source ,and a frontend Dashboard to show simple metrics in human-friendly way.
-
-The included Dashboard shows:
-
-- If our live Docker services are up and scaled to desirable replicas
-- Returned http codes
-- If Prometheus targets are up
-
-[Grafana Example Snapshot](https://snapshot.raintank.io/dashboard/snapshot/WtLG0EcoRG47j2gAoaDMo4UwV62Cr80I)
-
-### Monitoring - Docker Exporter
-
-Docker exporter (Author: [dreamPathsProjekt](https://github.com/dreamPathsProjekt)), uses Python 3 packages, [docker](https://docker-py.readthedocs.io/en/stable/index.html) and [prometheus_client](https://github.com/prometheus/client_python/tree/master/prometheus_client). It exposes an http server (internally only, on 8000 inside the monitoring stack). It also connects to the Docker daemon using Docker Api, and exposes metrics `live_replicas_<service name>` and `desired_replicas_<service name>` in a Prometheus compatible timeseries format.
-
-A simple way to monitor if services have failed internally is to see if `live replicas < desired replicas`
-
-Docker exporter is also compatible with __multi-node swarms__ (cluster) as long as it is deployed on a __manager node__ (preferably a Leader) and the container mounted to Docker host volume:
-
-```YAML
-services:
-  # ...
-
-  docker-exporter:
-    # ...
-    deploy:
-      placement:
-        constraints:
-          - node.role == manager
-      replicas: 1
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-```
-
-### Monitoring - Blackbox Exporter
-
-Blackbox exporter is used by Prometheus to probe targets from the outside and collect metrics. To setup a scrape job for Blackbox we setup targets in Prometheus and redirect them to Blackbox via a defined module (here __http_2xx__).
-
-```YAML
-  - job_name: 'wpstack_wordpress'
-    metrics_path: /probe
-    params:
-      module: [http_2xx]
-    scrape_interval: 10s
-
-    static_configs:
-      - targets:
-        - '35.189.200.49:80'
-    relabel_configs:
-      - source_labels: [__address__]
-        target_label: __param_target
-      - source_labels: [__param_target]
-        target_label: instance
-      - target_label: __address__
-        replacement: blackbox:9115
-```
-
-And the respective Blackbox exporter modules rules in [blackbox.yml](./blackbox-exporter/blackbox.yml):
-
-```YAML
-modules:
-  http_2xx:
-    prober: http
-    timeout: 15s
-    http:
-      method: GET
-      valid_http_versions: ["HTTP/1.1", "HTTP/2"]
-      valid_status_codes: []
-      preferred_ip_protocol: "ip4"
-      # no_follow_redirects: true
-      tls_config:
-        insecure_skip_verify: xxx
-        # insecure_skip_verify true/false is provided in blackbox.env file ,based on environment
-```
-
-In the working demo example, Blackbox returns correctly ,status codes: `200` for Wordpress and `401` (Unauthorized) for Adminer, since Adminer is protected with basic authorization via Caddy loadbalancer.
-
 ---
 
 ## Setup
@@ -352,6 +260,102 @@ Adminer, Grafana, Prometheus loadbalancer credentials: see above secrets lb_admi
 - Grafana Read-Only User
 - - user: support
 - - password: support
+
+---
+
+## Deployment Procedure in detail
+
+### Monitoring - Prometheus
+
+**Prometheus** service is at the center of collecting metrics from our installation.
+
+You can view all Prometheus targets at [http://node:9090/targets](http://node:9090/targets)
+
+- Demo Link: [http://35.189.200.49:9090](http://35.189.200.49:9090)
+
+Prometheus listens and generates metrics from scrape_configs -> jobs
+
+- Example of bootstrapping prometheus(self) & exporters to 'prometheus' job: [prometheus.yml](./production/environment/prometheus/prometheus.yml) configuration file mounted at `/home/username/docker_deployment_example/production/environment/prometheus/* (node-local) -> */etc/prometheus* (container)`
+
+- Prometheus exposes all collected metrics at [http://35.189.200.49:9090/metrics](http://35.189.200.49:9090/metrics), see below for Live Demo credentials
+
+### Grafana - Overview
+
+Grafana is a visualization application that uses Prometheus metrics as a Data source ,and a frontend Dashboard to show simple metrics in human-friendly way.
+
+The included Dashboard shows:
+
+- If our live Docker services are up and scaled to desirable replicas
+- Returned http codes
+- If Prometheus targets are up
+
+[Grafana Example Snapshot](https://snapshot.raintank.io/dashboard/snapshot/WtLG0EcoRG47j2gAoaDMo4UwV62Cr80I)
+
+### Monitoring - Docker Exporter
+
+Docker exporter (Author: [dreamPathsProjekt](https://github.com/dreamPathsProjekt)), uses Python 3 packages, [docker](https://docker-py.readthedocs.io/en/stable/index.html) and [prometheus_client](https://github.com/prometheus/client_python/tree/master/prometheus_client). It exposes an http server (internally only, on 8000 inside the monitoring stack). It also connects to the Docker daemon using Docker Api, and exposes metrics `live_replicas_<service name>` and `desired_replicas_<service name>` in a Prometheus compatible timeseries format.
+
+A simple way to monitor if services have failed internally is to see if `live replicas < desired replicas`
+
+Docker exporter is also compatible with __multi-node swarms__ (cluster) as long as it is deployed on a __manager node__ (preferably a Leader) and the container mounted to Docker host volume:
+
+```YAML
+services:
+  # ...
+
+  docker-exporter:
+    # ...
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      replicas: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+```
+
+### Monitoring - Blackbox Exporter
+
+Blackbox exporter is used by Prometheus to probe targets from the outside and collect metrics. To setup a scrape job for Blackbox we setup targets in Prometheus and redirect them to Blackbox via a defined module (here __http_2xx__).
+
+```YAML
+  - job_name: 'wpstack_wordpress'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    scrape_interval: 10s
+
+    static_configs:
+      - targets:
+        - '35.189.200.49:80'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox:9115
+```
+
+And the respective Blackbox exporter modules rules in [blackbox.yml](./blackbox-exporter/blackbox.yml):
+
+```YAML
+modules:
+  http_2xx:
+    prober: http
+    timeout: 15s
+    http:
+      method: GET
+      valid_http_versions: ["HTTP/1.1", "HTTP/2"]
+      valid_status_codes: []
+      preferred_ip_protocol: "ip4"
+      # no_follow_redirects: true
+      tls_config:
+        insecure_skip_verify: xxx
+        # insecure_skip_verify true/false is provided in blackbox.env file ,based on environment
+```
+
+In the working demo example, Blackbox returns correctly ,status codes: `200` for Wordpress and `401` (Unauthorized) for Adminer, since Adminer is protected with basic authorization via Caddy loadbalancer.
 
 ## Scaling a Service Stack to use Persistence and a unified Database Tier
 
