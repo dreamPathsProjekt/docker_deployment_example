@@ -353,6 +353,92 @@ Adminer, Grafana, Prometheus loadbalancer credentials: see above secrets lb_admi
 - - user: support
 - - password: support
 
+## Scaling a Service Stack to use Persistence and a unified Database Tier
+
+Although scaling across a Swarm is easy with Stack Deployments ,there are various considerations to take into account.
+
+### Distinct environments that share the same database tier
+
+As shown, a demo of how to replicate different environments using the same base images, but different configurations is provided. In order to talk to a single database tier for different environments (stacks) we have two options:
+
+#### Option 1 attachable networks
+
+- Create an overlay network that MariaDB listens to, let's call it `mariadb_network` and set `attachable: true`. Also deploy MariaDB as a separate stack.
+
+- Attach that network as external to each environment and since swarm services can communicate on multiple networks we can provide the following app configuration:
+
+Stack 1:
+
+```YAML
+networks:
+  wp_network_1:
+    driver: overlay
+    attachable: true
+  mariadb_network:
+    external: true
+
+services:
+  wordpress:
+    # ...
+    networks:
+      - wp_network_1
+      - mariadb_network
+```
+
+- In the above way we can communicate with the DB stack using the namespace `mariadb` (for service named mariadb) as domain name e.g. `http://mariadb:3306` ,even if mariadb does not expose ports outside of the swarm.
+
+Stack 2:
+
+```YAML
+networks:
+  my_service_network:
+    driver: overlay
+    attachable: true
+  mariadb_network:
+    external: true
+
+services:
+  my_service:
+    # ...
+    networks:
+      - my_service_network
+      - mariadb_network
+```
+
+The only drawback of option 1 is that multiple stacks have to be deployed on the same swarm.
+
+#### Option 2 expose DB to the outside
+
+The second option is to expose MariaDB to the outside with option:
+
+```YAML
+# ...
+  ports:
+    - "3306:3306"
+```
+
+and refer to a specific `node-ip/domain:3306` in your applications.
+
+### Data & Persistence
+
+Deploying Databases on ephemeral storage as seen in this demonstration is a bad practice and a crude solution. As a Cloud hosted Vm is restarted, volumes are lost and there is the potential of data loss.
+
+- An easy solution to this problem is to utilize persistent storage solution of your cloud host provider such as EFS on Amazon or Persistent Disks on Google Cloud ,that also provide autoscaling features. A simple example of using EFS with the given stack deployment would be mounting volumes as below (we assume you deploy the swarm to the EFS-compatible region):
+
+```YAML
+volumes:
+  wp_content:
+    driver: "cloudstor:aws"
+  mariadb_volume:
+    driver: "cloudstor:aws"
+    driver_opts:
+      perfmode: maxio
+```
+
+### Microservices communicating with a central storage system
+
+- The problem of different microservices (on different stacks) talking with a centralized database cluster, can be solved by using a distributed streaming platform such as __Apache Kafka__ (with a __Zookeeper__ cluster for orchestration), used as a Storage system or as a Messaging Stream queue between services and a DB cluster. The details of such an implementation are beyond the scope of this demonstration.
+
 ## Benefits - Drawbacks of using Docker & Docker Swarm for Orchestration
 
 Docker has arguably been a game changer, in the way we deploy applications at a massive scale , setup development environments and/or deliver a fast desired CI/CD pipeline environment.
