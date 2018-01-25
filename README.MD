@@ -352,3 +352,41 @@ Adminer, Grafana, Prometheus loadbalancer credentials: see above secrets lb_admi
 - Grafana Read-Only User
 - - user: support
 - - password: support
+
+## Benefits - Drawbacks of using Docker & Docker Swarm for Orchestration
+
+Docker has arguably been a game changer, in the way we deploy applications at a massive scale , setup development environments and/or deliver a fast desired CI/CD pipeline environment.
+
+### Advantages
+
+- __Reusability of built images.__
+- - You can setup different environments from development to production and leverage the use of containers to easily and quickly deploy scalable code that is first tested ,has passed the phase of acceptance testing (through a User Acceptance Testing environment) and delivered to production using the same builds/release version.
+- - It is a very handy feature to be able to maintain different versions of an API or releases (stable/experimental) and thus keeping your existing userbase and backwards compatibility.
+- - Avoids Vendor Lock-in.Migrating a stack to a different cloud provider requires almost single digit days' time ,rather than a painfully slow cycle of weeks and months.
+
+- __Containerisation means separation of concerns.__
+- - By using Docker images we can setup different underlying operating systems, language and/or library versions on the same system.
+- - The fact that docker images are immutable, self contained and (at least in theory) sandboxed from one another ,means an endless stream of architectural choices ,for development and operations teams ,to setup and easily maintain testing, bugtracking, future release environments etc. without the pain points of having to setup conflicting tools or libraries.
+- - It is also a technology that plays extremely nice with the whole notion of __microservices architecture__ because of the above.
+
+- __Easy setup of unified and replicable development environments (Cattle vs Pets).__
+- - It is a quite known joke, that the phrase "it works on my machine" is no longer an acceptable answer. The cost and operational complexity of provisioning and maintaining manually ,different development environments, is so big that Docker looks like a monopoly in this area.
+- - Having replicable dev and testing environments means scalability for development teams also. It also means that if different environments use the same images, it reduces the pain points of migration from Dev to production and possible bugs introduced by the underlying application host.
+
+- __Scalability.__
+- - Scalability to multiple containers and nodes is just a single command away using Docker Swarm `docker service scale my_service=...`.
+- - Efficiently utilize machine resources and storage by using multiple containers on each VM ,instead of wasting money and resources by maintaining a VM per each component of your application/project
+- - Although developers have to account for a distributed model (see also disadvantages) and plan ahead for services that span in multiple instances, the operational cost and complexity to scale a project is reduced.
+- - Rolling updates are also faster and more secure, since you can easily rollback to stable versions in case of failure.
+- - In case of a node failure, Swarm orchestration provides a way to balance the load to remaining nodes in a swarm, at least temporarily until the problem is resolved
+
+- __Much easier and user-friendly to setup, to alternative containerisation technologies__
+- - CoreOS __rkt__, Canonical's __LXD__ and other containerisation alternatives are substantially more cumbersome to setup and maintain.
+- - The use cases, pre-built base images and community support and documentation around Docker is at least twice as large (if not more).
+- - Kubernetes' __cri-o__ project is still in infancy and quite an uknown factor for the future.
+
+- __Orchestration with Docker Swarm is as user-friendly as Docker itself and utilizes the same underlying principles__
+- - By sharing the same technology principles between the build phase and orchestration, means that operations teams can utilize the same existing knowledge on multiple levels
+
+- __CI / CD principles achieved.__ As mentioned above, using Docker images (with or without Swarm orchestration) can enhance your ability and simplicity of your automation pipelines, and shorten the cycle between each iteration.
+- - Docker enhances the speed with which you can deliver bugfixes and new features.
