@@ -373,12 +373,13 @@ Docker has arguably been a game changer, in the way we deploy applications at a 
   - It is a quite known joke, that the phrase "it works on my machine" is no longer an acceptable answer. The cost and operational complexity of provisioning and maintaining manually ,different development environments, is so big that Docker looks like a monopoly in this area.
   - Having replicable dev and testing environments means scalability for development teams also. It also means that if different environments use the same images, it reduces the pain points of migration from Dev to production and possible bugs introduced by the underlying application host.
 
-- __Scalability.__
+- __Scalability - High Availability.__
   - Scalability to multiple containers and nodes is just a single command away using Docker Swarm `docker service scale my_service=...`.
   - Efficiently utilize machine resources and storage by using multiple containers on each VM ,instead of wasting money and resources by maintaining a VM per each component of your application/project
   - Although developers have to account for a distributed model (see also disadvantages) and plan ahead for services that span in multiple instances, the operational cost and complexity to scale a project is reduced.
   - Rolling updates are also faster and more secure, since you can easily rollback to stable versions in case of failure.
-  - In case of a node failure, Swarm orchestration provides a way to balance the load to remaining nodes in a swarm, at least temporarily until the problem is resolved
+  - In case of a node failure, Swarm orchestration provides a way to balance the container load to remaining nodes in a swarm, at least temporarily until the problem is resolved.
+  - Also by using clusters of odd number of nodes (3, 5 etc.), which has to be translated to an even number of managers as a best practice, you reduce the possibility of __single point of failure.__ Even if a Leader goes down, another manager is automatically elected Leader and cluster Quorom is maintained.
 
 - __Much easier and user-friendly to setup, to alternative containerisation technologies__
   - CoreOS __rkt__, Canonical's __LXD__ and other containerisation alternatives are substantially more cumbersome to setup and maintain.
@@ -393,5 +394,33 @@ Docker has arguably been a game changer, in the way we deploy applications at a 
   - Docker enhances the speed with which you can deliver bugfixes and new features.
 
 - __Docker Swarm provides High-Level Abstractions__
-  - By abstracting away the underlying networking details, using namespaces inside a single stack, rather than ip addresses, the use of persistence with mounting volumes, Docker registry & trusted Registry (EE version) and Secrets are all usable, high level features that save time and reduce the low-level complexity needed otherwise, to provision all those configurations.
+  - By abstracting away the underlying networking details, using namespaces inside a single stack, rather than ip addresses, the use of persistence with mounting volumes, Docker registry & trusted Registry (EE version), attachable networks (services listening on two or more overlay networks) and Secrets are all usable, high level features that save time and reduce the low-level complexity needed otherwise, to provision all those configurations.
   - Minimizing human error with the help of the above high-level abstractions, leads to robustness.
+
+## Disadvantages
+
+- __Move development fast and break things.__
+  - One of the biggest drawbacks of Docker, and fears of Operations & IT teams is the fact that the Docker development team moves too fast with new features and at times has neglected backwards compatibility and bug fixes of older versions. The forks of Docker-engine to CE and EE and the Moby project has been met with mixed feelings as to how Docker plans to move ahead.
+  - Traditionally IT teams have longer update cycles compared to Dev teams ,in search of stability. Although Docker promises fixed stable and experimental release channel cycles for the commercial EE version, it is still uknown how, bugs introduced to newer releases will affect production systems and at what scale.
+
+- __Compatibility issues with the CentOS/RHEL filesystems.__
+  - In earlier versions of Docker there were various underlying filesystem problems, rendering Docker unusable to a wide array of Linux distributions (especially affecting Linux Kernels before 4.4). Although the Docker team and certain Linux distros(like CentOS) are moving towards fixing those compatibility issues (recent Docker updates have confirmed increased support), it is still the safest choice to use Ubuntu 16+ systems and strongly avoid kernels in the range of 3.* versions ,to host Docker.
+  - Unfortunately IT teams have been hesitant and resistive to base production servers on Ubuntu and prefer el (enterprise Linux e.g. RHEL) based distros. This can be a point of friction between IT, Operations & Development teams across an organization and each side could have reasonable concerns that could result in a stalemate situation.
+
+- __Docker Swarm provides High-Level Abstractions. This results to Cryptic Logging & Troubleshooting.__
+  - Although containers and their abstraction logic of Swarm orchestration is a wonder when things go right, it is a major pain point when things go wrong.Potentially this could lead to an inability to find the root cause of many problems and bugs ,as the underlying configurations have been abstracted away.
+  - Debugging and logging applications running on a Swarm cluster is riddled with hidden functionalities and decreased visibility. It is also a well known feature (not a bug) that you cannot view container specific logs of all containers (those running on workers) from a manager or leader. This leads to a back & forth process of checking logs between managers and workers and if you have reduced access to worker nodes (e.g. in the case of a jumphost server that is restricted to connect to a specific manager) your only solution is to view service-level logs that can be misleading ,in the use case that you want to view which specific container is reading/writing to what source etc.
+  - High-level abstractions of networking with Docker Swarm does not play nice with specific technologies or tools and can lead to untraceable or difficult to trace connectivity problems. Furthermore until recently, there were versions of Docker Swarm that had problematic behaviour with regards to Docker specific network types (ingress, overlay).
+
+- __Developers have to make a paradigm shift to a distributed model.__
+  - Although Docker has solved numerous problems of Dev teams, it is still not overly clear or easily translatable to many developers, that they have to plan ahead (even in early protorype phases) and architect application structures that encompass their services running at scale with a specific immutable model. This leads to raising development and design to unwanted complexity levels ,early on and can potentially lead to quick and dirty duck tape solutions in a codebase. Collecting technical debt should be avoidable at all costs.
+  - Immutable infrastructure means that you cannot always maintain state programmatically. Although the recent rise in functional programming goes along with the Docker philosophy of destroying containers and spawning new instances from scratch, not all dev teams follow the functional guidelines in regards to state management. Most enterprise dev teams usually are built around Object Oriented principles (Java, C# and C++ is still king at enterprise level) and older ways of thinking about mutable state and coupling data with functionality at the same class level.
+
+- __Immutability vs databases. Persistence and safety of Data__
+  - Managing data and databases in immutable containers is not always the optimal solution. Although persistence at Vm or bare-metal level can be achieved through the use of mounted volumes, if the node or Vm fails persistence fails along. In a Cloud environment (e.g. GC, AWS, Azure) running databases inside Vm ephemeral storage is best avoided. Although solutions to this problem have been provided by Cloud providers (such as Persistent Disks in Google cloud , S3 Buckets in AWS etc.), sometimes the best solution is to store your data and keep multiple backups of data and schema instances, to a separate physical or dedicated cluster for safety and security reasons.
+
+- __The Container Security Landscape is still a relatively uknown territory.__
+  - __DevSecOps__ has been a trending catchphrase for a reason. The maturity and ability to document, reproduce and patch security issues with containers and container orchestration in mind ,has not reached the levels of traditional server security. Although this can be controversial, but my opinion is that the Docker development community has still not taken security into serious account yet.
+
+- __Docker Swarm specific issues and bugs__
+  - Although certain bugs and issues that plagued earlier versions of Docker Swarm are slowly being patched, there is a focus amongst the community on new features being released, rather than patching issues and delivering a mature ,safe stable release channel. Maturity wise, Kubernetes looks like a safer orchestration (albeit more complex) alternative at this point in time. Also running Swarm in a cluster-as-a-service fashion (e.g. in AWS ECS clusters) through a Cloud Provider is another viable scalable solution to escape the pain of manually upgrading, maintaining, scaling and troubleshooting host Vms, by effectively delegating these tasks (or blame if things go wrong) to the Cloud provider service.
