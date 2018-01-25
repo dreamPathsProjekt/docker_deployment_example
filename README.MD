@@ -63,7 +63,7 @@ The included Dashboard shows:
 - Returned http codes
 - If Prometheus targets are up
 
-<iframe src=https://snapshot.raintank.io/dashboard/snapshot/WtLG0EcoRG47j2gAoaDMo4UwV62Cr80I width="650" height="300" frameborder="0"></iframe>
+[Grafana Example Snapshot](https://snapshot.raintank.io/dashboard/snapshot/WtLG0EcoRG47j2gAoaDMo4UwV62Cr80I)
 
 ### Monitoring - Docker Exporter
 
