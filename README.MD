@@ -388,6 +388,10 @@ Docker has arguably been a game changer, in the way we deploy applications at a 
 - __Orchestration with Docker Swarm is as user-friendly as Docker itself and utilizes the same underlying principles__
   - By sharing the same technology principles between the build phase and orchestration, means that operations teams can utilize the same existing knowledge on multiple levels
 
-- __CI / CD principles achieved.__ 
+- __CI / CD principles achieved.__
   - As mentioned above, using Docker images (with or without Swarm orchestration) can enhance your ability and simplicity of your automation pipelines, and shorten the cycle between each iteration.
   - Docker enhances the speed with which you can deliver bugfixes and new features.
+
+- __Docker Swarm provides High-Level Abstractions__
+  - By abstracting away the underlying networking details, using namespaces inside a single stack, rather than ip addresses, the use of persistence with mounting volumes, Docker registry & trusted Registry (EE version) and Secrets are all usable, high level features that save time and reduce the low-level complexity needed otherwise, to provision all those configurations.
+  - Minimizing human error with the help of the above high-level abstractions, leads to robustness.
