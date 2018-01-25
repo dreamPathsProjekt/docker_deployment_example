@@ -218,7 +218,7 @@ wi0hbi0f31b9        wpstack_wordpress             replicated          1/1       
 # Deploy monitoring stack with name monitoring
 docker stack deploy -c production/monitoring-stack.yml monitoring
 
-# Watch services to be up, and wait for caddy_monitoring loadbalancer healthchecks
+# Watch services to be up, and wait (~= 1m) for caddy_monitoring loadbalancer healthchecks
 watch -n 1 -d docker service ls
 
 # Output should look like this
@@ -236,6 +236,78 @@ jd6xq0v9g7i5        monitoring_prometheus         replicated          1/1       
 - - Production: Allow ports tcp:80 (Wordpress), tcp:8888 (Adminer), tcp:3000 (Grafana), tcp:9090 (Prometheus), tcp:9115 (Blackbox Exporter)
 
 - For the sake of simplicity the values in environment files ( .env) ,in each folder are the same. However if you wish to change environment variables or secrets, you don't need to rebuild all images, just apply the changes and stack deploy (Updates services).
+
+- If you wish to deploy a different environment on the same host
+
+  - first remove the stack(s) with:
+
+  ```Shell
+  docker stack rm wpstack
+  docker stack rm monitoring
+  ```
+
+  - Be aware that for a clean re-deploy of any stack you also have to remove volumes:
+
+  ```Shell
+  # list volumes
+  docker volume ls
+
+  docker volume rm -f wpstack_mariadb
+  docker volume rm -f wpstack_wp_content
+  docker volume rm -f monitoring_prometheus
+  docker volume rm -f monitoring_grafana
+  ```
+
+  - If ,in any case, volumes can't be removed with `docker volume rm` you need to copy the full id `[3d4857...]` of the container(s)-in-use in the prompting message and run:
+
+  ```Shell
+  docker rm -f <cont_id>
+
+  # then remove volume
+  docker rm -f wpstack_<service_volume>
+  ```
+
+## Post-deployment Setup - Wordpress & Adminer
+
+- Go to http://domain-or-host-ip, and follow the installation procedure.
+
+- [Live wordpress demo](http://35.189.200.49/)
+
+- To connect Adminer to MariaDB:
+  - Go to http://domain-or-host-ip:8888
+  - [Live Adminer demo](http://35.189.200.49:8888)
+  - Use `lb_admin_user`, `lb_admin_pass` credentials
+  - Live demo credentials: `admin`, `pass!word`
+  - System: `MySQL`
+  - Host: `mariadb`
+  - Username: `root`
+  - Password: `r00t`
+  - Database: leave empty
+  - From there you can view `wp_dbase` schema and tables created by wordpress
+
+## Post-deployment Setup - Setup Prometheus & Grafana
+
+- Go to http://domain-or-host-ip:9090, and use the same `lb_admin_user`, `lb_admin_pass` credentials
+- Select from menu item `Status` -> `Targets` to see that all targets are `UP`
+- [Live Prometheus demo](http://35.189.200.49:9090)
+- Live demo credentials: `admin`, `pass!word`
+- http://domain-or-host-ip:3000 Grafana
+- [Live Grafana demo](http://35.189.200.49:3000)
+- Use the same `lb_admin_user`, `lb_admin_pass` credentials, to login as admin user.
+
+### Setup Grafana Datasource and Dashboard
+
+- After you login, select in the main menu (upper left) `Data Sources` -> `Add data source`
+- Name: `Prometheus`
+- Type: select `Prometheus`, `default` checked
+- HTTP settings: URL: `http://prometheus:9090`, Access: `proxy`
+- HTTP Auth: Check `Basic Auth`, `With Credentials` and `Skip TLS Verification (Insecure)`
+- Basic Auth Details: User: `admin` ,Password: `pass!word`
+- Save & Test (should get green)
+- Setup Dashboard: select in the main menu (upper left) `Dashboards` -> `Import`
+- Click `Upload .json` and navigate to [cloned_repo_folder/grafana_dashboard/DockerCluster_And_HttpProbes-1516829061828.json](./grafana_dashboard/DockerCluster_And_HttpProbes-1516829061828.json)
+- Don't forget to select `Prometheus` as a datasource
+- Go to `Docker Cluste & Http Probes` Dashboard to see visualized metrics collected by Prometheus, that monitor Wordpress, MariaDB & Adminer.
 
 ## Credentials for Live Demo
 
