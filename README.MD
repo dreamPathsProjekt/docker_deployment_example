@@ -267,6 +267,14 @@ jd6xq0v9g7i5        monitoring_prometheus         replicated          1/1       
   docker rm -f wpstack_<service_volume>
   ```
 
+## Scale any service to multiple replicas
+
+- In the Live Demo example the Wordpress service is scaled to 2 replicas:
+
+```Shell
+docker service scale wpstack_wordpress=2
+```
+
 ## Post-deployment Setup - Wordpress & Adminer
 
 - Go to http://domain-or-host-ip, and follow the installation procedure.
@@ -309,6 +317,8 @@ jd6xq0v9g7i5        monitoring_prometheus         replicated          1/1       
 - Don't forget to select `Prometheus` as a datasource
 - Go to `Docker Cluste & Http Probes` Dashboard to see visualized metrics collected by Prometheus, that monitor Wordpress, MariaDB & Adminer.
 
+---
+
 ## Credentials for Live Demo
 
 __Live Demo__ (production environment):
@@ -337,6 +347,180 @@ Adminer, Grafana, Prometheus loadbalancer credentials: see above secrets lb_admi
 
 ## Deployment Procedure in detail
 
+### Builds - Docker Secrets & Environment files
+
+Docker Secrets are used to secure sensitive data.
+Usually the optimal way to use secrets is by providing them at container startup via an __entrypoint script__ as a *wrapper script* around the base-image.
+
+For example in [./grafana/Dockerfile](./grafana) ,we run `docker-entry` as entry script.
+
+```Dockerfile
+FROM  grafana/grafana:4.6.3
+
+LABEL maintainer="dream.paths.projekt@gmail.com"
+
+COPY . /etc/grafana/
+WORKDIR /etc/grafana/
+
+ENTRYPOINT ["./docker-entry.sh"]
+```
+
+`docker-entry` uses a replacement function `set_config` to replace hidden `xxx` values in grafana.ini , with secrets inside the container.
+
+```Bash
+#!/bin/bash
+
+config_file=/etc/grafana/grafana.ini
+
+value_to_change=xxx
+
+# ...
+
+ADMIN_USER=$(cat /run/secrets/lb_admin_user)
+if [ ! -z "$ADMIN_USER" ]; then
+        set_config "admin_user " $ADMIN_USER $config_file
+fi
+
+ADMIN_PASSWORD=$(cat /run/secrets/lb_admin_pass)
+if [ ! -z "$ADMIN_PASSWORD" ]; then
+        set_config "admin_password " $ADMIN_PASSWORD $config_file
+fi
+```
+
+The same procedure is used to determine environment variables ,that can be changed per environment, with the exception that they are provided as plain-text values in `.env` files.
+
+```Bash
+if [ ! -z "$DOMAIN" ]; then
+        set_config "domain " $DOMAIN $config_file
+fi
+```
+
+Another way is to export them as environment variables (inside the container again) in the `entry-script` like we do in __caddy__ image.
+
+```Bash
+#!/bin/sh -e
+
+export ADMIN_USER=$(cat /run/secrets/lb_admin_user)
+export ADMIN_PASSWORD=$(cat /run/secrets/lb_admin_pass)
+
+set -- /sbin/tini "$@"
+
+exec "$@"
+```
+
+In the case of Wordpress and MariaDB ,the base images provide environment variables as `FILE` type e.g. `MYSQL_PASSWORD_FILE`. Those variables are used as environment at the compose yml file for wpstack:
+
+```YAML
+  # mariadb database
+  mariadb:
+    image: mariadb:10.3
+    volumes:
+      - mariadb_volume:/var/lib/mysql
+    secrets:
+      - source: wp_db_pass
+        target: wp_db_pass
+      - source: db_root_pass
+        target: db_root_pass
+    env_file:
+      - environment/mariadb.env
+    environment:
+      - "MYSQL_PASSWORD_FILE=/run/secrets/wp_db_pass"
+      - "MYSQL_ROOT_PASSWORD_FILE=/run/secrets/db_root_pass"
+```
+
+- One advantage of using `source` and `target` secrets is that we can change the `source` name, on the docker host and still refer to the same `target` secret name without changing out built images.
+
+### Wordpress - MariaDB - Adminer
+
+Wordpress communicates with MariaDB as both services listen on the same network.
+
+- We also persist changes inside the containers (database schema, static and image files provided to wordpress etc.) by mounting volumes to the host filesystem (mounted on `/var/lib/docker/volumes/wpstack_<service_name>/_data`)
+
+For more detail see the docker stack [compose file](./development/wp_mariadb_admin.yml)
+
+- Adminer is the phpmyadmin alternative to easily administer MariaDB through a front-end interface. Since we do not want to expose this service unprotected we setup Basic Authorization with Caddy Loadbalancer (see below)
+
+### Caddy Loadbalancer
+
+Caddy is used to expose all necessary ports from inside the swarm to the outside.We proxy those ports by configuring the [Caddyfile](./caddy/Caddyfile) for each caddy lb (wpstack, monitoring) accordingly.
+
+For example in the monitoring stack we protect Prometheus and Blackbox-Exporter with basic auth, and leave Grafana unprotected since Grafana has it's own login system.
+
+```Shell
+:9090 {
+    basicauth / {$ADMIN_USER} {$ADMIN_PASSWORD}
+    proxy / prometheus:9090 {
+            transparent
+            websocket
+        }
+
+    errors stderr
+    tls {$TLS}
+}
+
+:9115 {
+    basicauth / {$ADMIN_USER} {$ADMIN_PASSWORD}
+    proxy / blackbox:9115 {
+            transparent
+            websocket
+        }
+
+    errors stderr
+    tls {$TLS}
+}
+
+:3000 {
+    proxy / grafana:3000 {
+            transparent
+            websocket
+        }
+
+    errors stderr
+    tls {$TLS}
+}
+
+```
+
+- Simple GET http requests are used as healthchecks at the __front-end entry point__ of each stack (wpstack: __Wordpress__, monitoring: __Grafana__) so caddy can expose ports, only if the entry points are healthy.
+
+```YAML
+  # caddy loadbalancer
+  caddy:
+    image: registry.dream:5001/caddy:latest
+    secrets:
+      - source: lb_admin_user
+        target: lb_admin_user
+      - source: lb_admin_pass
+        target: lb_admin_pass
+    ports:
+      - "80:80" # wordpress
+      - "8888:8888" # adminer
+    networks:
+      - wp_network
+    depends_on:
+      - mariadb
+      - wordpress
+      - adminer
+    env_file:
+      - environment/caddy.env
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://wordpress:80"]
+      interval: 5s
+      timeout: 1s
+      retries: 5
+```
+
 ### Monitoring - Prometheus
 
 **Prometheus** service is at the center of collecting metrics from our installation.
@@ -347,7 +531,8 @@ You can view all Prometheus targets at [http://node:9090/targets](http://node:90
 
 Prometheus listens and generates metrics from scrape_configs -> jobs
 
-- Example of bootstrapping prometheus(self) & exporters to 'prometheus' job: [prometheus.yml](./production/environment/prometheus/prometheus.yml) configuration file mounted at `/home/username/docker_deployment_example/production/environment/prometheus/* (node-local) -> */etc/prometheus* (container)`
+- Example of bootstrapping prometheus(self) & exporters to 'prometheus' job: [prometheus.yml](./production/environment/prometheus/prometheus.yml) inside configuration folder production/environment/prometheus
+  - mounted at `/home/username/docker_deployment_example/production/environment/prometheus/* (node-local) -> */etc/prometheus* (container)`
 
 - Prometheus exposes all collected metrics at [http://35.189.200.49:9090/metrics](http://35.189.200.49:9090/metrics), see below for Live Demo credentials
 
@@ -586,3 +771,19 @@ Docker has arguably been a game changer, in the way we deploy applications at a 
 
 - __Docker Swarm specific issues and bugs__
   - Although certain bugs and issues that plagued earlier versions of Docker Swarm are slowly being patched, there is a focus amongst the community on new features being released, rather than patching issues and delivering a mature ,safe stable release channel. Maturity wise, Kubernetes looks like a safer orchestration (albeit more complex) alternative at this point in time (I cannot phrase an opinion on Mesos orchestration ,as I have no working knowledge) as you can effectively use Docker Images in Kubernetes Pods. Also running Swarm in a cluster-as-a-service fashion (e.g. in AWS ECS clusters) through a Cloud Provider is another viable scalable solution to escape the pain of manually upgrading, maintaining, scaling and troubleshooting host Vms, by effectively delegating these tasks (or blame if things go wrong) to the Cloud provider service.
+
+## Base images - Repositories used
+
+- [https://hub.docker.com/_/wordpress/](https://hub.docker.com/_/wordpress/)
+
+- [https://github.com/docker-library/mariadb/blob/25d4485e6192c1cfa2f9b12882c291258b73ed64/10.3/Dockerfile](https://github.com/docker-library/mariadb/blob/25d4485e6192c1cfa2f9b12882c291258b73ed64/10.3/Dockerfile)
+
+- [https://github.com/hardware/adminer](https://github.com/hardware/adminer)
+
+- [https://hub.docker.com/r/stefanprodan/caddy/](https://hub.docker.com/r/stefanprodan/caddy/)
+
+- [https://github.com/prometheus](https://github.com/prometheus)
+
+- [https://hub.docker.com/r/grafana/grafana/](https://hub.docker.com/r/grafana/grafana/)
+
+- [https://github.com/prometheus/blackbox_exporter](https://github.com/prometheus/blackbox_exporter)
